@@ -15,7 +15,7 @@ var GIoTTOApi = require('./path/to/the/repo/folder');
 var api = new GIoTTOApi({
   clientId: 'wHaTeVeR', # required
   clientSecret: 'wHaTeVeR', # required
-  email: 'matus@cs.au.dk', # required, email for the user
+  email: 'wHa@TeV.eR', # required, email for the user
   mqUsername: 'wHaTeVeR', # required, username for the RabbitMQ
   mqPassword: 'wHaTeVeR', # required, password for the RabbitMQ
 
