@@ -24,11 +24,7 @@ var api = new GIoTTOApi({
   protocol: 'https', # defaults to https
   hostname: 'bd-exp.andrew.cmu.edu', # defaults to bd-exp.andrew.cmu.edu
   csPort: 81, # defaults to 81, port for the CentralService
-  dsPort: 82, # defaults to 82, port for the DataService
-
-  mlProtocol: 'http', # defaults to http, protocol for the MachineLearningLayer
-  mlHostname: 'bd-exp.andrew.cmu.edu', # defaults to bd-exp.andrew.cmu.edu
-  mlPort: 5000 # defaults to 5000, port for MachineLearningLayer
+  dsPort: 82 # defaults to 82, port for the DataService
 });
 
 api.authenticate(function (err) {
