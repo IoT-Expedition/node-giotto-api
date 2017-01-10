@@ -59,20 +59,20 @@ function zeroCrossings(values) {
   return count;
 }
 
-module.exports = (timeseries) => {
+module.exports = (timeseries, i) => {
   var values = timeseries.map((item) => { return item.value; });
 
   var max = _.max(values);
   var min = _.min(values);
 
-  return {
-    avg: average(values),
-    std: standardDeviation(values),
-    peaks: peakCounts(values),
-    median: median(values),
-    min: min,
-    max: max,
-    zeroCrossings: zeroCrossings(values),
-    range: max - min
-  };
+  var features = {};
+  features['avg_' + i] = average(values);
+  features['peaks_' + i] = peakCounts(values);
+  features['median_' + i] = median(values);
+  features['min_' + i] = min;
+  features['max_' + i] = max;
+  features['zeroCrossings_' + i] = zeroCrossings(values);
+  features['range_' + i] = max - min;
+
+  return features;
 };

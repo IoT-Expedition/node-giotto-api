@@ -20,16 +20,11 @@ class VirtualSensor {
   train(callback) {
     async.map(this.samples,
         (sample, done) => {
-          this.api.readTimeseriesOfSensors(sample.sensorUuids,
-              sample.start, sample.end, (err, data) => {
-                if (err) {
-                  done(err); return;
-                }
-
-                var features = extractFeatures(data);
-                features.label = sample.label;
-                done(null, features);
-              });
+          this._toFeatures(sample.sensorUuids,
+              sample.start,
+              sample.end,
+              sample.label,
+              done);
         }, (err, data) => {
           if (err) {
             callback(err); return;
@@ -51,20 +46,56 @@ class VirtualSensor {
       callback('Not trained yet'); return;
     }
 
-    this.api.readTimeseriesOfSensors(uuids,
-        start, end, (err, data) => {
-          if (err) {
-            callback(err); return;
-          }
+    this._toFeatures(uuids, start, end, null, (err, features) => {
+      if (err) {
+        callback(err); return;
+      }
 
-          var features = extractFeatures(data);
-          var rf = new RandomForestClassifier({
-            n_estimators: 10
-          });
+      var rf = new RandomForestClassifier({
+        n_estimators: 10
+      });
 
-          var predicted = rf.predict([ features ], this.trees);
-          callback(null, predicted[0]);
-        });
+      var predicted = rf.predict([ features ], this.trees);
+      callback(null, predicted[0]);
+    });
+  }
+
+  _toFeatures(sensorsUuids, start, end, label, callback) {
+    this._mapTimeseries(sensorsUuids, start, end, (err, timeseriesGroups) => {
+      if (err) {
+        callback(err); return;
+      }
+
+      var features = {};
+      timeseriesGroups.forEach((item) => {
+        var timeseries = item.value;
+        var i = item.index;
+
+        features = Object.assign(extractFeatures(timeseries, i), features);
+      });
+
+      if (label) {
+        features.label = label;
+      }
+
+      callback(null, features);
+    });
+  }
+
+  _mapTimeseries(uuidGroups, start, end, callback) {
+    var wrapped = uuidGroups.map(function (value, index) {
+      return { index: index, value: value };
+    });
+
+    async.map(wrapped, (item, done) => {
+      var uuids = item.value;
+      var i = item.index;
+
+      this.api.readTimeseriesOfSensors(uuids, start, end, (err, timeseries) => {
+        if (err) { done(err); return; }
+        done(null, { index: i, value: timeseries });
+      });
+    }, callback);
   }
 }
 

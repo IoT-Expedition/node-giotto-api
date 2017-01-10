@@ -74,7 +74,17 @@ Using virtual sensors to classify data:
 
 ```
 var sensor = api.virtualSensor();
-var uuids = [ '6931acba-cea0-...', '288473c1-e809-...' ];
+var uuids = [
+  [
+    '6931acba-cea0-437f-aadf-982334ce583f',
+    '288473c1-e809-4da0-85da-b77f53f62df0'
+  ], // A group of sensors - their values will be merged and trained together
+
+  [
+    '5d952e43-d008-4713-9558-7031f7520e65'
+  ] // Second group of sensors
+];
+
 sensor.addSample(uuids, 1484067040.554, 1484067050.121, 'light');
 sensor.addSample(uuids, 1484067094.361, 1484067105.505, 'dark');
 sensor.addSample(uuids, 1484067169.671, 1484067179.671, 'light');
