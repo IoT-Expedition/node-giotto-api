@@ -69,7 +69,7 @@ api.readTimeseries(uuid, startTime, endTime, (err, data) => {
 Reading timeseries of multiple sensors:
 
 ```
-api.readTimeseries([ uuid1, uuid2 ], startTime, endTime, (err, data) => {
+api.readTimeseriesOfSensors([ uuid1, uuid2 ], startTime, endTime, (err, data) => {
   // [ { time: 1484062558.954, value: 12.5 }, ... ]
 });
 ```
