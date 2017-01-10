@@ -1,8 +1,8 @@
 var request = require('request'),
     MQApi = require('./MQApi'),
-    ml = require('./ml'),
     VirtualSensor = require('./VirtualSensor'),
     sensors = require('./sensors'),
+    timeseries = require('./timeseries'),
     subscriptions = require('./subscriptions');
 
 function GIoTTOApi(opts) {
@@ -10,25 +10,21 @@ function GIoTTOApi(opts) {
   this.clientSecret = opts.clientSecret;
 
   this.protocol = opts.protocol || 'https';
-  this.mlProtocol = opts.mlProtocol || 'http';
   this.hostname = opts.hostname || 'bd-exp.andrew.cmu.edu';
-  this.mlHostname = opts.mlHostname || opts.hostname || 'bd-exp.andrew.cmu.edu';
   this.csPort = opts.csPort || 81;
   this.dsPort = opts.dsPort || 82;
-  this.mlPort = opts.mlPort || 5000;
   this.email = opts.email || 'no@gmail.com';
   this.mqUsername = opts.mqUsername;
   this.mqPassword = opts.mqPassword;
-  this.VirtualSensor = VirtualSensor;
+  this.virtualSensor = () => { return new VirtualSensor(this); };
 
   this.cs = { protocol: this.protocol, hostname: this.hostname, port: this.csPort };
   this.ds = { protocol: this.protocol, hostname: this.hostname, port: this.dsPort };
-  this.ml = { protocol: this.mlProtocol, hostname: this.mlHostname, port: this.mlPort };
 
   Object.assign(this,
       sensors(this),
       subscriptions(this),
-      ml(this));
+      timeseries(this));
 }
 
 GIoTTOApi.prototype = (function () {
