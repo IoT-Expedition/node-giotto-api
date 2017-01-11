@@ -15,8 +15,9 @@ function readTimeseries(api, sensorUuid, startTime, endTime, callback) {
           callback('Failed to get the data'); return;
         }
 
+        var series = body.data.series || [];
         var data = [];
-        body.data.series.forEach((series) => {
+        series.forEach((series) => {
           data = data.concat(series.values);
         });
 

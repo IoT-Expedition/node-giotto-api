@@ -1,6 +1,5 @@
 var request = require('request'),
     MQApi = require('./MQApi'),
-    VirtualSensor = require('./VirtualSensor'),
     sensors = require('./sensors'),
     timeseries = require('./timeseries'),
     subscriptions = require('./subscriptions');
@@ -16,7 +15,10 @@ function GIoTTOApi(opts) {
   this.email = opts.email || 'no@gmail.com';
   this.mqUsername = opts.mqUsername;
   this.mqPassword = opts.mqPassword;
-  this.virtualSensor = () => { return new VirtualSensor(this); };
+  this.virtualSensor = () => {
+    const VirtualSensor = require('./VirtualSensor');
+    return new VirtualSensor(this);
+  };
 
   this.cs = { protocol: this.protocol, hostname: this.hostname, port: this.csPort };
   this.ds = { protocol: this.protocol, hostname: this.hostname, port: this.dsPort };

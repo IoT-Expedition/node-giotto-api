@@ -20,7 +20,7 @@ function subscriptions(api) {
 
           queueName = body.app_id;
           api.subscribeToQueue(queueName, function (err, msg) {
-            console.log(err);
+            if (err) { console.log(err); callback(err); return; }
             // {"fields":{"value":17.93212890625,"inserted_at":"2016-11-22T02:12:00.11318206Z"},"time":"2016-11-22T02:12:00.05500006Z","measurement":"9181f988-d171-418c-ba18-b59d0d44570e"}
             var message = readPythonDictionary(msg.content.toString());
             var sensor = message.measurement;
@@ -33,32 +33,40 @@ function subscriptions(api) {
     },
 
     subscribeToSensor: function (macId, callback) {
-      api.postRequest(api.ds, 'api/apps/subscription', {
-        email: api.email,
-        app: queueName,
-        sensor: macId
-      }, function (err, response, body) {
-        if (err) { callback(err); return; }
+      if (queueName) {
+        api.postRequest(api.ds, 'api/apps/subscription', {
+          email: api.email,
+          app: queueName,
+          sensor: macId
+        }, function (err, response, body) {
+          if (err) { callback(err); return; }
 
-        if (body.success != 'True') {
-          callback('Failed to subscribe to sensor: ' + body.error); return;
-        }
-        callback();
-      });
+          if (body.success != 'True') {
+            callback('Failed to subscribe to sensor: ' + body); return;
+          }
+          callback();
+        });
+      } else {
+        callback('Call startListeningForSensorData first.');
+      }
     },
 
     unsubscribeFromSensor: function (macId, callback) {
-      api.deleteRequest(api.ds, 'api/apps/subscription', {
-        email: api.email,
-        app: queueName,
-        sensor: macId
-      }, function (err, response, body) {
-        if (err) { callback(err); return; }
+      if (queueName) {
+        api.deleteRequest(api.ds, 'api/apps/subscription', {
+          email: api.email,
+          app: queueName,
+          sensor: macId
+        }, function (err, response, body) {
+          if (err) { callback(err); return; }
 
-        if (body.success != 'True') {
-          callback('Failed to unsubscribe from sensor'); return;
-        }
-      });
+          if (body.success != 'True') {
+            callback('Failed to unsubscribe from sensor'); return;
+          }
+        });
+      } else {
+        callback('Call startListeningForSensorData first.');
+      }
     }
 
   };
