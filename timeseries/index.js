@@ -56,6 +56,15 @@ function timeseries(api) {
           return item.time;
         }));
       });
+    },
+
+    postTimeseriesValue: function (sensorUuid, time, value) {
+      if (api.redisPubSub) {
+        api.redisPubSub.emit(sensorUuid, {
+          uuid: sensorUuid, time: time, value: value
+        });
+      }
+      aggregator.postTimeseriesValue(sensorUuid, time, value);
     }
 
   };

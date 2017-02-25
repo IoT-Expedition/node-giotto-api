@@ -1,4 +1,4 @@
-const model = require('./chariotModel'),
+const model = require('../chariotModel'),
       async = require('async'),
 
       Sensor = model.Sensor,
@@ -73,6 +73,7 @@ class BuildingModelBuilder {
 
     async.forEach(deviceDefs, (deviceDef, done) => {
       let device = new Device({}, building);
+      device.id = deviceDef.name;
       device.uuid = deviceDef.name;
 
       if (this._tagsWithName(deviceDef.tags, 'DeviceID').length) {

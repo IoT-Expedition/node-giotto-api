@@ -1,10 +1,8 @@
 const request = require('request'),
       NRP = require('node-redis-pubsub'),
-      MQApi = require('./MQApi'),
-      BuildingModelBuilder = require('./BuildingModelBuilder'),
-      DeviceWriter = require('./DeviceWriter'),
-      RuleWriter = require('./RuleWriter'),
       sensors = require('./sensors'),
+      modelBuilder = require('./modelBuilder'),
+      modelWriters = require('./modelWriters'),
       timeseries = require('./timeseries'),
       subscriptions = require('./subscriptions');
 
@@ -37,12 +35,6 @@ class GIoTTOApi {
     this.dsPort = opts.dsPort || 82;
     this.mlPort = opts.mlPort || 5000;
     this.email = opts.email || 'no@gmail.com';
-    this.mqUsername = opts.mqUsername;
-    this.mqPassword = opts.mqPassword;
-    this.virtualSensor = () => {
-      const VirtualSensor = require('./VirtualSensor');
-      return new VirtualSensor(this);
-    };
 
     this.cs = { protocol: this.protocol, hostname: this.hostname, port: this.csPort };
     this.ds = { protocol: this.protocol, hostname: this.hostname, port: this.dsPort };
@@ -55,6 +47,8 @@ class GIoTTOApi {
 
     Object.assign(this,
         sensors(this),
+        modelBuilder(this),
+        modelWriters(this),
         subscriptions(this),
         timeseries(this));
   }
@@ -134,56 +128,6 @@ class GIoTTOApi {
     });
   }
 
-  publishToQueue(queueName, msg, callback) {
-    var mq = this.mqApi();
-    mq.authenticate(function (err) {
-      if (err) { callback(err); return; }
-
-      mq.publishToQueue(queueName, msg, callback);
-    });
-  }
-
-  subscribeToQueue(queueName, callback) {
-    var mq = this.mqApi();
-    mq.authenticate(function (err) {
-      if (err) { callback(err); return; }
-
-      mq.listenOnQueue(queueName, callback);
-    });
-  }
-
-  updateDevice(device, callback) {
-    let deviceWriter = new DeviceWriter(device);
-    deviceWriter.update(this, callback);
-  }
-
-  createDevice(device, callback) {
-    let deviceWriter = new DeviceWriter(device);
-    deviceWriter.post(this, callback);
-  }
-
-  updateRule(rule, callback) {
-    let ruleWriter = new RuleWriter(rule);
-    ruleWriter.update(this, callback);
-  }
-
-  createRule(rule, callback) {
-    let ruleWriter = new RuleWriter(rule);
-    ruleWriter.post(this, callback);
-  }
-
-  getBuildingModel(name, callback) {
-    let builder = new BuildingModelBuilder(name, this);
-    builder.build(callback);
-  }
-
-  mqApi() {
-    return new MQApi({
-      hostname: this.hostname,
-      username: this.mqUsername,
-      password: this.mqPassword
-    });
-  }
 }
 
 module.exports = GIoTTOApi;

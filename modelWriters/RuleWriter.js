@@ -1,5 +1,5 @@
 const GIoTTOSensor = require('./GIoTTOSensor'),
-      hashString = require('./chariotModel').hashString;
+      hashString = require('../chariotModel').hashString;
 
 
 class RuleWriter {
