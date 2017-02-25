@@ -8,37 +8,46 @@ class VirtualSensor {
     this.api = api;
   }
 
-  addSample(uuids, start, end, label) {
+  addSample(uuids, start, end, label, features) {
     this.samples.push({
       sensorUuids: uuids,
       start: start,
       end: end,
-      label: label
+      label: label,
+      features: features
     });
   }
 
   train(callback) {
     async.map(this.samples,
         (sample, done) => {
-          this._toFeatures(sample.sensorUuids,
-              sample.start,
-              sample.end,
-              sample.label,
-              done);
+          if (sample.features) {
+            done(null, sample.features);
+          } else {
+            this.toFeatures(sample.sensorUuids,
+                sample.start,
+                sample.end,
+                sample.label,
+                done);
+          }
         }, (err, data) => {
           if (err) {
             callback(err); return;
           }
 
-          var rf = new RandomForestClassifier({
-            n_estimators: 10
-          });
-
-          rf.fit(data, null, 'label', (err, trees) => {
-            this.trees = trees;
-            callback(err);
-          });
+          this.trainWithFeatures(data, callback);
         });
+  }
+
+  trainWithFeatures(features, callback) {
+    var rf = new RandomForestClassifier({
+      n_estimators: 10
+    });
+
+    rf.fit(features, null, 'label', (err, trees) => {
+      this.trees = trees;
+      callback(err);
+    });
   }
 
   predict(uuids, start, end, callback) {
@@ -46,7 +55,7 @@ class VirtualSensor {
       callback('Not trained yet'); return;
     }
 
-    this._toFeatures(uuids, start, end, null, (err, features) => {
+    this.toFeatures(uuids, start, end, null, (err, features) => {
       if (err) {
         callback(err); return;
       }
@@ -60,7 +69,7 @@ class VirtualSensor {
     });
   }
 
-  _toFeatures(sensorsUuids, start, end, label, callback) {
+  toFeatures(sensorsUuids, start, end, label, callback) {
     this._mapTimeseries(sensorsUuids, start, end, (err, timeseriesGroups) => {
       if (err) {
         callback(err); return;
@@ -91,8 +100,15 @@ class VirtualSensor {
       var uuids = item.value;
       var i = item.index;
 
+
       this.api.readTimeseriesOfSensors(uuids, start, end, (err, timeseries) => {
         if (err) { done(err); return; }
+
+        if (timeseries.length == 0) {
+          done('Training failed - no data for the given sample.');
+          return;
+        }
+
         done(null, { index: i, value: timeseries });
       });
     }, callback);

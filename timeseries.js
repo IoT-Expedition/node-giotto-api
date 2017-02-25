@@ -10,7 +10,12 @@ function readTimeseries(api, sensorUuid, startTime, endTime, callback) {
           callback(err); return;
         }
 
-        body = JSON.parse(body);
+        try {
+          body = JSON.parse(body);
+        } catch(e) {
+          callback(body); return;
+        }
+
         if (body.success != 'True') {
           callback('Failed to get the data'); return;
         }
@@ -24,7 +29,8 @@ function readTimeseries(api, sensorUuid, startTime, endTime, callback) {
         callback(null, data.map((item) => {
           return {
             time: Date.parse(item[0]) / 1000,
-            value: item[2]
+            value: Math.round(item[2] * 1000) / 1000,
+            uuid: sensorUuid
           };
         }));
       });

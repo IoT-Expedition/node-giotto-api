@@ -1,74 +1,123 @@
-var readPythonDictionary = require('./readPythonDictionary');
+class BDSubscription {
+  constructor(uuids, callback, api) {
+    this.uuids = uuids;
+    this.callback = callback;
+    this.api = api;
+
+    this.updatePeriod = 2000;
+    this.running = false;
+    this.averageValues = false;
+  }
+
+  start() {
+    this.running = true;
+    this._planUpdate();
+  }
+
+  stop() {
+    this.running = false;
+  }
+
+  _planUpdate() {
+    setTimeout(() => { this._update(); }, this.updatePeriod);
+  }
+
+  _update() {
+    if (!this.running) return;
+
+    let time = new Date().getTime();
+    let start = this.lastUpdatedUpTo ||
+      (time - this.updatePeriod * 2) / 1000; // twice update period ago
+    let end = (time / 1000) - 5; // 5 seconds ago
+
+    this.lastUpdatedUpTo = end;
+
+    this.api.readTimeseriesOfSensors(this.uuids, start, end, (err, data) => {
+      if (!this.running) return;
+      if (err) { console.error(err); return; }
+
+      this._planUpdate();
+
+      let values = data.map((i) => { return i.value; });
+      if (values.length) {
+        if (this.averageValues) {
+          let avg = this._average(values);
+          this.callback(avg);
+        } else {
+          values.forEach((i) => { this.callback(i); });
+        }
+      }
+    });
+  }
+
+  _average(data) {
+    var sum = data.reduce(function(sum, value){
+      return sum + value;
+    }, 0);
+
+    var avg = sum / data.length;
+    return avg;
+  }
+}
+
+
+class RedisSubscription {
+  constructor(uuids, callback, api) {
+    this.uuids = uuids;
+    this.callback = callback;
+    this.api = api;
+    this.nrp = this.api.redisPubSub;
+
+    this.running = false;
+    this.unsubscribes = [];
+  }
+
+  start() {
+    this.uuids.forEach((uuid) => {
+      console.log('Subscribing to', uuid);
+      let unsubscribe = this.nrp.on(uuid, (data) => {
+        console.log('Received value', uuid, data.value);
+        this.callback(data.value, uuid);
+      });
+      this.unsubscribes.push(unsubscribe);
+    });
+
+    this.running = true;
+  }
+
+  stop() {
+    this.running = false;
+    this.unsubscribes.forEach((unsubscribe) => {
+      unsubscribe();
+    });
+    this.unsubscribes = [];
+  }
+}
+
 
 function subscriptions(api) {
-  var queueName;
-
   return {
-    startListeningForSensorData: function (listener, callback) {
-      if (queueName) {
-        api.subscribeToQueue(queueName, listener);
+    subscribeToSensor: function (uuid, callback) {
+      let subscription;
+      if (api.redisPubSub) {
+        subscription = new RedisSubscription([ uuid ], callback, api);
       } else {
-        api.postRequest(api.ds, 'api/apps', {
-          name: 'IoT Commissioner Location',
-          email: api.email
-        }, function (err, response, body) {
-          if (err) { callback(err); return; }
-
-          if (body.success != 'True') {
-            callback('Failed to register app'); return;
-          }
-
-          queueName = body.app_id;
-          api.subscribeToQueue(queueName, function (err, msg) {
-            if (err) { console.log(err); callback(err); return; }
-            // {"fields":{"value":17.93212890625,"inserted_at":"2016-11-22T02:12:00.11318206Z"},"time":"2016-11-22T02:12:00.05500006Z","measurement":"9181f988-d171-418c-ba18-b59d0d44570e"}
-            var message = readPythonDictionary(msg.content.toString());
-            var sensor = message.measurement;
-            var value = message.fields.value;
-            listener(null, sensor, value);
-          });
-          callback();
-        });
+        subscription = new BDSubscription([ uuid ], callback, api);
       }
+      subscription.start();
+      return subscription;
     },
 
-    subscribeToSensor: function (macId, callback) {
-      if (queueName) {
-        api.postRequest(api.ds, 'api/apps/subscription', {
-          email: api.email,
-          app: queueName,
-          sensor: macId
-        }, function (err, response, body) {
-          if (err) { callback(err); return; }
-
-          if (body.success != 'True') {
-            callback('Failed to subscribe to sensor: ' + body); return;
-          }
-          callback();
-        });
+    subscribeToSensors: function (uuids, callback) {
+      let subscription;
+      if (api.redisPubSub) {
+        subscription = new RedisSubscription(uuids, callback, api);
       } else {
-        callback('Call startListeningForSensorData first.');
+        subscription = new BDSubscription(uuids, callback, api);
       }
-    },
-
-    unsubscribeFromSensor: function (macId, callback) {
-      if (queueName) {
-        api.deleteRequest(api.ds, 'api/apps/subscription', {
-          email: api.email,
-          app: queueName,
-          sensor: macId
-        }, function (err, response, body) {
-          if (err) { callback(err); return; }
-
-          if (body.success != 'True') {
-            callback('Failed to unsubscribe from sensor'); return;
-          }
-        });
-      } else {
-        callback('Call startListeningForSensorData first.');
-      }
+      subscription.start();
+      return subscription;
     }
-
   };
 }
 
